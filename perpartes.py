@@ -53,7 +53,32 @@ class Car(object):
 		"""
 		print('(%7.4f) Car #%s starting...' % (env.now, self.id))
 		# TODO
-		return self.drive()
+
+		n_exit_hops = (egress_exit - ingress_exit + 4) % 4
+
+		assert(0 < n_exit_hops < 4)  # U-turn is not allowed
+
+		if n_exit_hops > 2:
+			# use inner circle
+			pass
+			raise NotImplementedError('Inner circle is not yet implemented!')
+		else:
+			# use outer circle
+			event_path = []
+
+			# convert 0-3 exit index to 0-X slot index
+			first_slot = self.roundabout.outer_exits_indices[ingress_exit][1]
+			last_slot = self.roundabout.outer_exits_indices[egress_exit][0]  # TODO: maybe use one slot before (-1 mod Len)
+
+			n_slots = (last_slot - first_slot + len(self.outer_circle)) % len(self.outer_circle)
+
+
+			# for i_exit in range()
+			# self.roundabout.outer_circle
+
+
+
+		return self.drive(event_path)
 
 	def drive(self, event_path):
 		""" Follows the precalculated path, spending some time while passing each slot. """
