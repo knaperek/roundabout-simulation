@@ -8,14 +8,15 @@ import simpy
 
 class CarSource(object):
 	""" Generates cars arriving to the crossroad. """
-	def __init__(self, env):
+	def __init__(self, env, roundabout):
 		self.env = env
+		self.roundabout = roundabout
 		self.process = env.process(self.generate(meanIAT=5))
 
 	def generate(self, meanIAT):
 		while True:
 			# print('Car arriving')
-			car = Car(self.env)
+			car = Car(self.env, self.roundabout)
 			iat = random.expovariate(1.0 / meanIAT)
 			yield self.env.timeout(iat)
 
@@ -36,14 +37,20 @@ class Car(object):
 	# Number of instances
 	counter = 0
 
-	def __init__(self, env):
+	def __init__(self, env, roundabout):
 		self.env = env
-		self.process = env.process(self.drive())
+		self.roundabout = roundabout
 		self.id = Car.counter
 		Car.counter += 1
+		self.process = env.process(self.drive())
 
-	def start(self, first_slot, last_slot, circle):
-		""" Pre-calculates the whole path the car should take and calls drive() method to follow it. """
+	# def start(self, first_slot, last_slot, circle):
+	def start(self, ingress_exit, egress_exit, circle):
+		"""
+		Pre-calculates the whole path the car should take and calls drive() method to follow it.
+
+		*ingress_exit* and *egress_exit* parameters are 0-based indexes of exites (West=0, South=1, ...)
+		"""
 		print('(%7.4f) Car #%s starting...' % (env.now, self.id))
 		# TODO
 		return self.drive()
@@ -63,22 +70,53 @@ class Car(object):
 class RoundAbout(object):
 	""" Container for all roundabout resources. """
 
+	Exits = collections.namedtuple('Exits', ['West', 'South', 'East', 'North'])
+
 	def __init__(self, env, inner_circle_len, outer_circle_len):
-		assert(inner_circle_len % 4 == 0)
-		assert(outer_circle_len % 4 == 0)
+		# Test circle lengths
+		for circle_len in (inner_circle_len, outer_circle_len):
+			assert(circle_len >= 8)
+			assert(circle_len % 4 == 0)
 
 		self.env = env
 
+		# Generate circles of Resources
 		self.inner_circle = [simpy.resources.resource.PriorityResource(env, capacity=1) for i in range(inner_circle_len)]
 		self.outer_circle = [simpy.resources.resource.PriorityResource(env, capacity=1) for i in range(outer_circle_len)]
 
-		# we start from the West
-		# self.exits = 
+		# Create indices of exit slots (exit pointers)
+		self.inner_exits_indices = Exits(*calculate_exit_indexes(len(self.inner_circle)))
+		self.outer_exits_indices = Exits(*calculate_exit_indexes(len(self.outer_circle)))
+
+
+	@staticmethod
+	def calculate_exit_indexes(circle_len):
+		"""
+		Helper function that returns 2-tuples of indexes of 4 exits.
+
+		We start from the West.
+		"""
+		quarter = circle_len // 4
+		return [
+			(i_exit * quarter - 1 + circle_len) % circle_len, i_exit * quarter for i_exit in range(4)
+		]
 
 
 
 
+def main():
+	INNER_CIRCLE_LEN = 16
+	OUTER_CIRCLE_LEN = 24
+	env = simpy.Environment()
+	roundabout = RoundAbout(
+		env=env,
+		inner_circle_len=INNER_CIRCLE_LEN,
+		outer_circle_len=OUTER_CIRCLE_LEN
+	)
+	car_generator = CarSource(env)
+
+	env.run(until=1000)
 
 
-
-
+if __name__ == '__main__':
+	main()
