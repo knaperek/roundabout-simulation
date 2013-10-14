@@ -5,6 +5,8 @@ import random
 
 import simpy
 
+from ring import Ring
+
 
 class CarSource(object):
 	""" Generates cars arriving to the crossroad. """
