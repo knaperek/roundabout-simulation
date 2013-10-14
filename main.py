@@ -59,7 +59,19 @@ class Car(object):
 
         if self.n_exit_hops > 2:
             # use inner circle
-            raise NotImplementedError('Inner circle is not yet implemented!')
+            first_outer_slot = self.roundabout.outer_exits_indices[self.ingress_exit][0]
+            first_inner_slot = self.roundabout.inner_exits_indices[self.ingress_exit][0]
+            last_inner_slot = self.roundabout.inner_exits_indices[self.egress_exit][0]
+
+            # first slot (on outer circle) used just to get into the inner circle
+            join_resource = self.roundabout.outer_circle[first_outer_slot]
+
+            # all inner slots (resources)
+            resources_path = list(self.roundabout.inner_circle[first_inner_slot:last_inner_slot])
+
+            # event path containing first "condition event" and then the rest of the path 
+            # event_path = [join_resource.request(priority=2) & resources_path[0].request(priority=2)] + [res.request(priority=1) for res in resources_path[1:]]
+            event_path = [res.request(priority=1) for res in resources_path]
         else:
             # use outer circle
             # convert 0-3 exit index to 0-X slot index
@@ -67,6 +79,7 @@ class Car(object):
             last_slot = self.roundabout.outer_exits_indices[self.egress_exit][0]  # actually, it is not used - it's the < boundary
 
             # event_path = [res.request(priority=1) for res in self.roundabout.outer_circle[first_slot:last_slot]]
+            # TODO: uncomment the line above and debug it! It seems conditional event cannot enter the with statement. The line below is just dummy replacement, not taking the outer slot into the account
             resources_path = list(self.roundabout.outer_circle[first_slot:last_slot])
             event_path = [resources_path[0].request(priority=2)] + [res.request(priority=1) for res in resources_path[1:]]
 
@@ -131,7 +144,9 @@ def main():
         inner_circle_len=INNER_CIRCLE_LEN,
         outer_circle_len=OUTER_CIRCLE_LEN
     )
-    car_generator = CarSource(env, roundabout, 0, 1)
+    car_generator_1 = CarSource(env, roundabout, 0, 1)
+    car_generator_2 = CarSource(env, roundabout, 0, 2)
+    car_generator_3 = CarSource(env, roundabout, 0, 3)
 
     env.run(until=1000)
 
