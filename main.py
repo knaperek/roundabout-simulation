@@ -14,8 +14,8 @@ class CarSource(object):
     def __init__(self, env, roundabout, ingress_exit, egress_exit):
         self.env = env
         self.roundabout = roundabout
-        self.ingress_exit = ingress_exit
-        self.egress_exit = egress_exit
+        self.ingress_exit = ingress_exit % 4
+        self.egress_exit = egress_exit % 4
         self.process = env.process(self.generate(meanIAT=5))
 
     def generate(self, meanIAT):
@@ -144,9 +144,15 @@ def main():
         inner_circle_len=INNER_CIRCLE_LEN,
         outer_circle_len=OUTER_CIRCLE_LEN
     )
-    car_generator_1 = CarSource(env, roundabout, 0, 1)
-    car_generator_2 = CarSource(env, roundabout, 0, 2)
-    car_generator_3 = CarSource(env, roundabout, 0, 3)
+
+    # car_generator_1 = CarSource(env, roundabout, 0, 1)
+    # car_generator_2 = CarSource(env, roundabout, 0, 2)
+    # car_generator_3 = CarSource(env, roundabout, 0, 3)
+
+    # Generate all combinations of car sources
+    for start_exit in range(4):
+        for n_exit_hops in range(1, 4):
+            CarSource(env, roundabout, start_exit, start_exit + n_exit_hops)
 
     env.run(until=1000)
 
