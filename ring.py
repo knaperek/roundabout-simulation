@@ -16,6 +16,9 @@ class Ring(object):
 	def __repr__(self):
 		return 'Ring(%s)' % repr(self._data)
 
+	def __len__(self):
+		return self._perimeter
+
 	def __getitem__(self, value):
 		if type(value) == slice:  # Slicing
 			# step is not supported for now
