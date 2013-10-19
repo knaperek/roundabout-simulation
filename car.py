@@ -109,7 +109,7 @@ class Car(object):
                 requests = [res.request(priority=priority) for res in step]
                 yield simpy.events.AllOf(self.env, requests)
                 self.log('acquired %d-th slot (Compound) and waiting...' % (i+1))
-                yield self.env.timeout(2)
+                yield self.env.timeout(1)
                 self.log('releasing %d-th slot (Compound)' % (i+1))
                 for request in requests:
                     request.resource.release(request)
@@ -117,7 +117,7 @@ class Car(object):
                 with step.request(priority=priority) as req:
                     yield req
                     self.log('acquired %d-th slot and waiting...' % (i+1))
-                    yield self.env.timeout(2)
+                    yield self.env.timeout(1)
                     self.log('releasing %d-th slot' % (i+1))
 
         # end of the path
@@ -133,4 +133,4 @@ class Car(object):
     def log(self, message):
         prefix = '(%7.4f) Car #%s: ' % (self.env.now, self.id)
         text = prefix + message
-        print(text)
+        # print(text)
