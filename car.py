@@ -10,12 +10,16 @@ class CarSource(object):
         self.roundabout = roundabout
         self.ingress_exit = ingress_exit % 4
         self.egress_exit = egress_exit % 4
+
+        # create empty list of cars
+        self.cars = []
+
         self.process = env.process(self.generate(meanIAT=5))
 
     def generate(self, meanIAT):
         while True:
-            # print('Car arriving')
             car = Car(self.env, self.roundabout, self.ingress_exit, self.egress_exit)
+            self.cars.append(car)
             iat = random.expovariate(1.0 / meanIAT)
             yield self.env.timeout(iat)
 
@@ -41,6 +45,9 @@ class Car(object):
         self.id = Car.counter
         Car.counter += 1
 
+        self.start_time = None
+        self.stop_time = None
+
         self.process = env.process(self.start())
 
     def start(self):
@@ -49,7 +56,7 @@ class Car(object):
 
         *ingress_exit* and *egress_exit* parameters are 0-based indexes of exites (West=0, South=1, ...)
         """
-        print('(%7.4f) Car #%s starting...' % (self.env.now, self.id))
+        self.log('starting...')
 
         if self.n_exit_hops > 2:
             # use inner circle
@@ -80,33 +87,50 @@ class Car(object):
 
         return self.drive(resources_path)
 
+
     def drive(self, resource_path):
         """ Follows the precalculated path, spending some time while passing each slot. """
-        print('(%7.4f) Car #%s is driving...' % (self.env.now, self.id))
+        self.log('is driving...')
 
+        self.start_time = self.env.now
         for i, step in enumerate(resource_path):
             # low priority for first iteration
             priority = 1 if i else 2
 
             if i == 0:
-                print('(%7.4f) Car #%s joining the roundabout' % (self.env.now, self.id))
+                self.log('joining the roundabout')
 
-            print('(%7.4f) Car #%s requesting %d-th slot' % (self.env.now, self.id, i+1))
+            self.log('requesting %d-th slot' % (i+1))
 
             if isinstance(step, list) or isinstance(step, tuple):  # two resources
-                print('(%7.4f) Car #%s requesting compound resource' % (self.env.now, self.id))
+                self.log('requesting compound resource')
                 
                 # resources = step
                 requests = [res.request(priority=priority) for res in step]
                 yield simpy.events.AllOf(self.env, requests)
-                print('(%7.4f) Car #%s acquired %d-th slot (Compound) and waiting...' % (self.env.now, self.id, i+1))
+                self.log('acquired %d-th slot (Compound) and waiting...' % (i+1))
                 yield self.env.timeout(2)
-                print('(%7.4f) Car #%s releasing %d-th slot (Compound)' % (self.env.now, self.id, i+1))
+                self.log('releasing %d-th slot (Compound)' % (i+1))
                 for request in requests:
                     request.resource.release(request)
             else:  # single resource
                 with step.request(priority=priority) as req:
                     yield req
-                    print('(%7.4f) Car #%s acquired %d-th slot and waiting...' % (self.env.now, self.id, i+1))
+                    self.log('acquired %d-th slot and waiting...' % (i+1))
                     yield self.env.timeout(2)
-                    print('(%7.4f) Car #%s releasing %d-th slot' % (self.env.now, self.id, i+1))
+                    self.log('releasing %d-th slot' % (i+1))
+
+        # end of the path
+        self.stop_time = self.env.now
+
+    @property
+    def total_time(self):
+        if self.stop_time == None:
+            # simulation ended before the car could finish the crossing
+            return self.stop_time
+        return self.stop_time - self.start_time
+
+    def log(self, message):
+        prefix = '(%7.4f) Car #%s: ' % (self.env.now, self.id)
+        text = prefix + message
+        print(text)
