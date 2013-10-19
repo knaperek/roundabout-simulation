@@ -62,40 +62,61 @@ class Car(object):
             first_outer_slot = self.roundabout.outer_exits_indices[self.ingress_exit][0]
             first_inner_slot = self.roundabout.inner_exits_indices[self.ingress_exit][0]
             last_inner_slot = self.roundabout.inner_exits_indices[self.egress_exit][0]
+            last_outer_slot = self.roundabout.outer_exits_indices[self.egress_exit][0]
 
             # first slot (on outer circle) used just to get into the inner circle
             join_resource = self.roundabout.outer_circle[first_outer_slot]
 
             # all inner slots (resources)
-            resources_path = list(self.roundabout.inner_circle[first_inner_slot:last_inner_slot])
+            resources_path = list(self.roundabout.inner_circle[first_inner_slot+1:last_inner_slot])
+            # compound resource containing first slots for both inner and outer circle
+            resources_path.insert(0, [
+                self.roundabout.outer_circle[first_outer_slot],
+                self.roundabout.inner_circle[first_inner_slot]
+            ])
+            # cross outer circle when exiting the roundabout
+            resources_path.append(self.roundabout.outer_circle[last_outer_slot])
 
-            # event path containing first "condition event" and then the rest of the path 
-            # event_path = [join_resource.request(priority=2) & resources_path[0].request(priority=2)] + [res.request(priority=1) for res in resources_path[1:]]
-            event_path = [res.request(priority=1) for res in resources_path]
         else:
             # use outer circle
             # convert 0-3 exit index to 0-X slot index
             first_slot = self.roundabout.outer_exits_indices[self.ingress_exit][1]
             last_slot = self.roundabout.outer_exits_indices[self.egress_exit][0]  # actually, it is not used - it's the < boundary
-
-            # event_path = [res.request(priority=1) for res in self.roundabout.outer_circle[first_slot:last_slot]]
-            # TODO: uncomment the line above and debug it! It seems conditional event cannot enter the with statement. The line below is just dummy replacement, not taking the outer slot into the account
             resources_path = list(self.roundabout.outer_circle[first_slot:last_slot])
-            event_path = [resources_path[0].request(priority=2)] + [res.request(priority=1) for res in resources_path[1:]]
 
-        return self.drive(event_path)
+        return self.drive(resources_path)
 
-    def drive(self, event_path):
+    def drive(self, resource_path):
         """ Follows the precalculated path, spending some time while passing each slot. """
         print('(%7.4f) Car #%s is driving...' % (self.env.now, self.id))
-        for i, event in enumerate(event_path):
-            with event as req:
-                print('(%7.4f) Car #%s requesting %d-th slot' % (self.env.now, self.id, i+1))
-                yield req
-                print('(%7.4f) Car #%s acquired %d-th slot and waiting...' % (self.env.now, self.id, i+1))
-                yield self.env.timeout(2)  # Time to move from one slot to the next
-                print('(%7.4f) Car #%s releasing %d-th slot' % (self.env.now, self.id, i+1))
-        
+
+        for i, step in enumerate(resource_path):
+            # low priority for first iteration
+            priority = 1 if i else 2
+
+            if i == 0:
+                print('(%7.4f) Car #%s joining the roundabout' % (self.env.now, self.id))
+
+            print('(%7.4f) Car #%s requesting %d-th slot' % (self.env.now, self.id, i+1))
+
+            if isinstance(step, list) or isinstance(step, tuple):  # two resources
+                print('(%7.4f) Car #%s requesting compound resource' % (self.env.now, self.id))
+                
+                # resources = step
+                requests = [res.request(priority=priority) for res in step]
+                yield simpy.events.AllOf(self.env, requests)
+                print('(%7.4f) Car #%s acquired %d-th slot (Compound) and waiting...' % (self.env.now, self.id, i+1))
+                yield self.env.timeout(2)
+                print('(%7.4f) Car #%s releasing %d-th slot (Compound)' % (self.env.now, self.id, i+1))
+                for request in requests:
+                    request.resource.release(request)
+            else:  # single resource
+                with step.request(priority=priority) as req:
+                    yield req
+                    print('(%7.4f) Car #%s acquired %d-th slot and waiting...' % (self.env.now, self.id, i+1))
+                    yield self.env.timeout(2)
+                    print('(%7.4f) Car #%s releasing %d-th slot' % (self.env.now, self.id, i+1))
+
 
 class RoundAbout(object):
     """ Container for all roundabout resources. """
@@ -154,7 +175,7 @@ def main():
         for n_exit_hops in range(1, 4):
             CarSource(env, roundabout, start_exit, start_exit + n_exit_hops)
 
-    env.run(until=1000)
+    env.run(until=100)
 
 
 if __name__ == '__main__':
