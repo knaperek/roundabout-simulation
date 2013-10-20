@@ -47,6 +47,13 @@ def main():
     unfinished_ratio = len(unfinished_cars) * 100 / len(finished_cars)
     print('Unfinished cars: %d (%d%%)' % (len(unfinished_cars), unfinished_ratio))
 
+    # Draw some nice charts using matplotlib
+    import pylab as P
+    P.xlabel('Crossing time')
+    P.ylabel('Number of cars')
+    P.hist(total_times)
+    P.show()
+
 
 if __name__ == '__main__':
     main()
