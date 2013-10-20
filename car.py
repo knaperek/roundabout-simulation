@@ -1,27 +1,33 @@
 import random
 import simpy
+from constants import *
 
 
 class CarSource(object):
     """ Generates cars arriving to the crossroad. """
-    # TODO: add random function as another argument
+
     def __init__(self, env, roundabout, ingress_exit, egress_exit):
         self.env = env
         self.roundabout = roundabout
         self.ingress_exit = ingress_exit % 4
         self.egress_exit = egress_exit % 4
+        assert(self.ingress_exit != self.egress_exit)  # U-turn not allowed!
+
+        # select inter-arrival-time random function
+        n_exit_hops = (self.egress_exit - self.ingress_exit) % 4
+        self.iat_random_func = CAR_GENERATOR_RANDOM_FUNCTIONS[self.ingress_exit][n_exit_hops-1]
 
         # create empty list of cars
         self.cars = []
 
-        self.process = env.process(self.generate(meanIAT=5))
+        self.process = env.process(self.generate())
 
-    def generate(self, meanIAT):
+    def generate(self):
         while True:
             car = Car(self.env, self.roundabout, self.ingress_exit, self.egress_exit)
             self.cars.append(car)
-            iat = random.expovariate(1.0 / meanIAT)
-            yield self.env.timeout(iat)
+            yield self.env.timeout(self.iat_random_func())
+            
 
 class Car(object):
     """
@@ -95,10 +101,11 @@ class Car(object):
         self.start_time = self.env.now
         for i, step in enumerate(resource_path):
             # low priority for first iteration
-            priority = 1 if i else 2
-
             if i == 0:
                 self.log('joining the roundabout')
+                priority = JUNCTION_PRIORITY_JOINING
+            else:
+                priority = JUNCTION_PRIORITY_INSIDE
 
             self.log('requesting %d-th slot' % (i+1))
 
@@ -109,7 +116,7 @@ class Car(object):
                 requests = [res.request(priority=priority) for res in step]
                 yield simpy.events.AllOf(self.env, requests)
                 self.log('acquired %d-th slot (Compound) and waiting...' % (i+1))
-                yield self.env.timeout(1)
+                yield self.env.timeout(SLOT_PASSING_TIME )
                 self.log('releasing %d-th slot (Compound)' % (i+1))
                 for request in requests:
                     request.resource.release(request)
@@ -117,7 +124,7 @@ class Car(object):
                 with step.request(priority=priority) as req:
                     yield req
                     self.log('acquired %d-th slot and waiting...' % (i+1))
-                    yield self.env.timeout(1)
+                    yield self.env.timeout(SLOT_PASSING_TIME )
                     self.log('releasing %d-th slot' % (i+1))
 
         # end of the path
