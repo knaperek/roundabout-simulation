@@ -8,7 +8,7 @@ class Ring(object):
 
     def __init__(self, sequence):
         self._data = list(sequence)
-        self._perimeter = len(self._data)
+        self._circumference = len(self._data)
 
     def __str__(self):
         return str(self._data)
@@ -17,12 +17,12 @@ class Ring(object):
         return 'Ring(%s)' % repr(self._data)
 
     def __len__(self):
-        return self._perimeter
+        return self._circumference
 
     def __getitem__(self, value):
         if type(value) == slice:  # Slicing
             # step is not supported for now
-            start, stop = value.start % self._perimeter, value.stop % self._perimeter
+            start, stop = value.start % self._circumference, value.stop % self._circumference
             if start <= stop:
                 # normal slice
                 return self._data[start:stop]
@@ -31,14 +31,14 @@ class Ring(object):
                 return self._data[start:] + self._data[:stop]
 
         else:  # Indexing
-            return self._data[value % self._perimeter]
+            return self._data[value % self._circumference]
 
 
     def __iter__(self):
         """ Returns infinite iterator, going to the circle. """
         i = 0
         while True:
-            i = (i + 1) % self._perimeter
+            i = (i + 1) % self._circumference
             yield self[i]
 
         
