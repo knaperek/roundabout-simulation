@@ -3,7 +3,6 @@
 import collections
 
 class Ring(object):
-    # """ Doubly linked list, supporting both references and indices """
     """ Doubly linked list, supporting indices with overflow """
 
     def __init__(self, sequence):
@@ -22,8 +21,8 @@ class Ring(object):
     def __getitem__(self, value):
         if type(value) == slice:  # Slicing
             # step is not supported for now
-            start, stop = value.start % self._circumference, value.stop % self._circumference
-            if start <= stop:
+            start, stop = [i % self._circumference for i in (value.start, value.stop)]
+            if start < stop:
                 # normal slice
                 return self._data[start:stop]
             else:
