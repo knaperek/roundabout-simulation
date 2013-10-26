@@ -6,7 +6,7 @@ JUNCTION_PRIORITY_INSIDE = 1
 JUNCTION_PRIORITY_JOINING = 2
 
 # Time it takes for moving by one car slot
-car_speed = 40  # km/h
+car_speed = 20  # km/h
 # car_speed = 80  # km/h
 slot_size = 3  # meters
 SLOT_PASSING_TIME = slot_size / (car_speed / 3.6)
