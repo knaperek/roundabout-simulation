@@ -11,7 +11,7 @@ car_speed = 40  # km/h
 slot_size = 3  # meters
 SLOT_PASSING_TIME = slot_size / (car_speed % 3.6)
 
-# Roundabout size (in slots). Must be multiple of 4 (at least 8)
+# Roundabout size (in slots). Must be multiple of 4 (at least 16)
 junction_diameter = 40  # meters
 junction_circumference = junction_diameter * 3
 circle_len = (junction_circumference / slot_size)

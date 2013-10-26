@@ -12,7 +12,7 @@ class RoundAbout(object):
     def __init__(self, env, inner_circle_len, outer_circle_len):
         # Test circle lengths
         for circle_len in (inner_circle_len, outer_circle_len):
-            assert(circle_len >= 8)
+            assert(circle_len >= 16)
             assert(circle_len % 4 == 0)
 
         self.env = env
@@ -26,8 +26,8 @@ class RoundAbout(object):
         )
 
         # Create indices of exit slots (exit pointers)
-        self.inner_exits_indices = RoundAbout.Exits(*RoundAbout.calculate_exit_indices(len(self.inner_circle)))
-        self.outer_exits_indices = RoundAbout.Exits(*RoundAbout.calculate_exit_indices(len(self.outer_circle)))
+        self.inner_exits_indices = RoundAbout.Exits(*RoundAbout.calculate_exit_indices(inner_circle_len))
+        self.outer_exits_indices = RoundAbout.Exits(*RoundAbout.calculate_exit_indices(outer_circle_len))
 
 
     @staticmethod
