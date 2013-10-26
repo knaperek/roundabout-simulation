@@ -9,7 +9,7 @@ JUNCTION_PRIORITY_JOINING = 2
 car_speed = 40  # km/h
 # car_speed = 80  # km/h
 slot_size = 3  # meters
-SLOT_PASSING_TIME = slot_size / (car_speed % 3.6)
+SLOT_PASSING_TIME = slot_size / (car_speed / 3.6)
 
 # Roundabout size (in slots). Must be multiple of 4 (at least 16)
 junction_diameter = 40  # meters
@@ -19,6 +19,16 @@ circle_len -= circle_len % 4
 # put some estimates...
 INNER_CIRCLE_LEN = circle_len - 4
 OUTER_CIRCLE_LEN = circle_len + 4
+
+SIMULATION_TIME = 24 * 3600
+
+DEBUG = False
+
+print('-------Running simulation with these constants:-----------')
+print('SLOT_PASSING_TIME: {}'.format(SLOT_PASSING_TIME))
+print('INNER_CIRCLE_LEN: {}'.format(INNER_CIRCLE_LEN))
+print('OUTER_CIRCLE_LEN: {}'.format(OUTER_CIRCLE_LEN))
+print('SIMULATION_TIME: {}'.format(SIMULATION_TIME))
 
 
 ####################### Random functions for generating inter-arrival times ################################

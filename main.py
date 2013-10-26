@@ -25,7 +25,7 @@ def main():
     # Generate all combinations of car sources
     car_sources = list(create_car_sources(env, roundabout))
 
-    env.run(until=10000)
+    env.run(until=SIMULATION_TIME)
 
     # statistics
     all_cars = []
@@ -41,8 +41,8 @@ def main():
 
     total_times = [car.total_time for car in finished_cars]
 
-    print('----------------')
-    print('Average time: %d' % numpy.mean(total_times))
+    print('-' * 80)
+    print('Average time: %.2f' % numpy.mean(total_times))
     print('Finished cars: %d' % len(finished_cars))
     unfinished_ratio = len(unfinished_cars) * 100 / len(finished_cars)
     print('Unfinished cars: %d (%d%%)' % (len(unfinished_cars), unfinished_ratio))

@@ -11,7 +11,7 @@ class CarSource(object):
         self.roundabout = roundabout
         self.ingress_exit = ingress_exit % 4
         self.egress_exit = egress_exit % 4
-        assert(self.ingress_exit != self.egress_exit)  # U-turn not allowed!
+        assert self.ingress_exit != self.egress_exit, 'U-turn is not allowed!'
 
         # select inter-arrival-time random function
         n_exit_hops = (self.egress_exit - self.ingress_exit) % 4
@@ -23,6 +23,9 @@ class CarSource(object):
         self.process = env.process(self.generate())
 
     def generate(self):
+        # For the beginning, wait half of the IAT time
+        yield self.env.timeout(self.iat_random_func() / 2)
+
         while True:
             car = Car(self.env, self.roundabout, self.ingress_exit, self.egress_exit)
             self.cars.append(car)
@@ -46,7 +49,7 @@ class Car(object):
         self.ingress_exit = ingress_exit
         self.egress_exit = egress_exit
         self.n_exit_hops = (egress_exit - ingress_exit) % 4
-        assert(0 < self.n_exit_hops < 4)  # U-turn is not allowed
+        assert 0 < self.n_exit_hops < 4, 'U-turn is not allowed!'
 
         self.id = Car.counter
         Car.counter += 1
@@ -66,30 +69,33 @@ class Car(object):
 
         if self.n_exit_hops > 2:
             # use inner circle
-            first_outer_slot = self.roundabout.outer_exits_indices[self.ingress_exit][0]
-            first_inner_slot = self.roundabout.inner_exits_indices[self.ingress_exit][0]
-            last_inner_slot = self.roundabout.inner_exits_indices[self.egress_exit][0]
-            last_outer_slot = self.roundabout.outer_exits_indices[self.egress_exit][0]
+            self.log('selecting inner circle')
 
-            # first slot (on outer circle) used just to get into the inner circle
-            join_resource = self.roundabout.outer_circle[first_outer_slot]
+            # convert 0-3 exit index to 0-X slot index
+            first_outer_slot = self.roundabout.outer_exits_indices[self.ingress_exit].left
+            first_inner_slot = self.roundabout.inner_exits_indices[self.ingress_exit].left
+            last_inner_slot = self.roundabout.inner_exits_indices[self.egress_exit].left - 1
+            last_outer_slot = self.roundabout.outer_exits_indices[self.egress_exit].left - 1
 
-            # all inner slots (resources)
-            resources_path = list(self.roundabout.inner_circle[first_inner_slot+1:last_inner_slot])
-            # compound resource containing first slots for both inner and outer circle
-            resources_path.insert(0, [
+            # cross outer circle when entering the roudnabout
+            resources_path = [(
+                # compound resource containing first slots for both inner and outer circle
                 self.roundabout.outer_circle[first_outer_slot],
                 self.roundabout.inner_circle[first_inner_slot]
-            ])
+            )]
+            # all inner resources
+            resources_path += self.roundabout.inner_circle[first_inner_slot+1:last_inner_slot+1]
             # cross outer circle when exiting the roundabout
             resources_path.append(self.roundabout.outer_circle[last_outer_slot])
 
         else:
             # use outer circle
+            self.log('selecting outer circle')
+
             # convert 0-3 exit index to 0-X slot index
-            first_slot = self.roundabout.outer_exits_indices[self.ingress_exit][1]
-            last_slot = self.roundabout.outer_exits_indices[self.egress_exit][0]  # actually, it is not used - it's the < boundary
-            resources_path = list(self.roundabout.outer_circle[first_slot:last_slot])
+            first_slot = self.roundabout.outer_exits_indices[self.ingress_exit].right
+            last_slot = self.roundabout.outer_exits_indices[self.egress_exit].left - 2
+            resources_path = list(self.roundabout.outer_circle[first_slot:last_slot+1])
 
         return self.drive(resources_path)
 
@@ -116,7 +122,7 @@ class Car(object):
                 requests = [res.request(priority=priority) for res in step]
                 yield simpy.events.AllOf(self.env, requests)
                 self.log('acquired %d-th slot (Compound) and waiting...' % (i+1))
-                yield self.env.timeout(SLOT_PASSING_TIME )
+                yield self.env.timeout(SLOT_PASSING_TIME)
                 self.log('releasing %d-th slot (Compound)' % (i+1))
                 for request in requests:
                     request.resource.release(request)
@@ -124,11 +130,12 @@ class Car(object):
                 with step.request(priority=priority) as req:
                     yield req
                     self.log('acquired %d-th slot and waiting...' % (i+1))
-                    yield self.env.timeout(SLOT_PASSING_TIME )
+                    yield self.env.timeout(SLOT_PASSING_TIME)
                     self.log('releasing %d-th slot' % (i+1))
 
         # end of the path
         self.stop_time = self.env.now
+        # print('Leaving: %s' % self.env.now)
 
     @property
     def total_time(self):
@@ -138,6 +145,7 @@ class Car(object):
         return self.stop_time - self.start_time
 
     def log(self, message):
-        prefix = '(%7.4f) Car #%s: ' % (self.env.now, self.id)
-        text = prefix + message
-        # print(text)
+        if DEBUG:
+            prefix = '(%7.4f) Car #%s: ' % (self.env.now, self.id)
+            text = prefix + message
+            print(text)
