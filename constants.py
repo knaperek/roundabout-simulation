@@ -7,18 +7,17 @@ JUNCTION_PRIORITY_JOINING = 2
 
 # Time it takes for moving by one car slot
 car_speed = 20  # km/h
-# car_speed = 80  # km/h
-slot_size = 3  # meters
+slot_size = 5  # meters
 SLOT_PASSING_TIME = slot_size / (car_speed / 3.6)
 
 # Roundabout size (in slots). Must be multiple of 4 (at least 16)
 junction_diameter = 40  # meters
-junction_circumference = junction_diameter * 3
-circle_len = (junction_circumference / slot_size)
-circle_len -= circle_len % 4
-# put some estimates...
-INNER_CIRCLE_LEN = circle_len - 4
-OUTER_CIRCLE_LEN = circle_len + 4
+
+def _quantize(value):
+	return int(round(value - value % 4))
+
+INNER_CIRCLE_LEN = _quantize((junction_diameter - 4) * 3.14 / slot_size)
+OUTER_CIRCLE_LEN = _quantize((junction_diameter + 4) * 3.14 / slot_size)
 
 SIMULATION_TIME = 24 * 3600
 
