@@ -43,6 +43,7 @@ def main():
 
     print('-' * 80)
     print('Average time: %.2f' % numpy.mean(total_times))
+    print('Maximum time: %.2f' % max(total_times))
     print('Finished cars: %d' % len(finished_cars))
     unfinished_ratio = len(unfinished_cars) * 100 / len(finished_cars)
     print('Unfinished cars: %d (%d%%)' % (len(unfinished_cars), unfinished_ratio))
@@ -51,7 +52,7 @@ def main():
     import pylab as P
     P.xlabel('Crossing time')
     P.ylabel('Number of cars')
-    P.hist(total_times)
+    P.hist(total_times, log=True)
     P.show()
 
 
