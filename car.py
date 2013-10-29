@@ -6,12 +6,13 @@ from constants import *
 class CarSource(object):
     """ Generates cars arriving to the crossroad. """
 
-    def __init__(self, env, roundabout, ingress_exit, egress_exit):
+    def __init__(self, env, roundabout, ingress_exit, egress_exit, slot_passing_time):
         self.env = env
         self.roundabout = roundabout
         self.ingress_exit = ingress_exit % 4
         self.egress_exit = egress_exit % 4
         assert self.ingress_exit != self.egress_exit, 'U-turn is not allowed!'
+        self.slot_passing_time = slot_passing_time
 
         # select inter-arrival-time random function
         n_exit_hops = (self.egress_exit - self.ingress_exit) % 4
@@ -27,7 +28,7 @@ class CarSource(object):
         yield self.env.timeout(self.iat_random_func() / 2)
 
         while True:
-            car = Car(self.env, self.roundabout, self.ingress_exit, self.egress_exit)
+            car = Car(self.env, self.roundabout, self.ingress_exit, self.egress_exit, self.slot_passing_time)
             self.cars.append(car)
             yield self.env.timeout(self.iat_random_func())
             
@@ -43,13 +44,14 @@ class Car(object):
 
     counter = 0  # Number of instances
 
-    def __init__(self, env, roundabout, ingress_exit, egress_exit):
+    def __init__(self, env, roundabout, ingress_exit, egress_exit, slot_passing_time):
         self.env = env
         self.roundabout = roundabout
         self.ingress_exit = ingress_exit
         self.egress_exit = egress_exit
         self.n_exit_hops = (egress_exit - ingress_exit) % 4
         assert 0 < self.n_exit_hops < 4, 'U-turn is not allowed!'
+        self.slot_passing_time = slot_passing_time
 
         self.id = Car.counter
         Car.counter += 1
@@ -122,7 +124,7 @@ class Car(object):
                 requests = [res.request(priority=priority) for res in step]
                 yield simpy.events.AllOf(self.env, requests)
                 self.log('acquired %d-th slot (Compound) and waiting...' % (i+1))
-                yield self.env.timeout(SLOT_PASSING_TIME)
+                yield self.env.timeout(self.slot_passing_time)
                 self.log('releasing %d-th slot (Compound)' % (i+1))
                 for request in requests:
                     request.resource.release(request)
@@ -130,7 +132,7 @@ class Car(object):
                 with step.request(priority=priority) as req:
                     yield req
                     self.log('acquired %d-th slot and waiting...' % (i+1))
-                    yield self.env.timeout(SLOT_PASSING_TIME)
+                    yield self.env.timeout(self.slot_passing_time)
                     self.log('releasing %d-th slot' % (i+1))
 
         # end of the path

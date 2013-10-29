@@ -5,29 +5,10 @@ from numpy.random import poisson, uniform
 JUNCTION_PRIORITY_INSIDE = 1
 JUNCTION_PRIORITY_JOINING = 2
 
-# Time it takes for moving by one car slot
-car_speed = 20  # km/h
-slot_size = 5  # meters
-SLOT_PASSING_TIME = slot_size / (car_speed / 3.6)
-
-# Roundabout size (in slots). Must be multiple of 4 (at least 16)
-junction_diameter = 40  # meters
-
-def _quantize(value):
-	return int(round(value - value % 4))
-
-INNER_CIRCLE_LEN = _quantize((junction_diameter - 4) * 3.14 / slot_size)
-OUTER_CIRCLE_LEN = _quantize((junction_diameter + 4) * 3.14 / slot_size)
 
 SIMULATION_TIME = 24 * 3600
 
 DEBUG = False
-
-print('-------Running simulation with these constants:-----------')
-print('SLOT_PASSING_TIME: {}'.format(SLOT_PASSING_TIME))
-print('INNER_CIRCLE_LEN: {}'.format(INNER_CIRCLE_LEN))
-print('OUTER_CIRCLE_LEN: {}'.format(OUTER_CIRCLE_LEN))
-print('SIMULATION_TIME: {}'.format(SIMULATION_TIME))
 
 
 ####################### Random functions for generating inter-arrival times ################################
